@@ -1,0 +1,70 @@
+name: Sync Latest Release
+
+# Fired by the forgeplayer release workflow via repository_dispatch
+# after a tag is published. Updates latest-version.json so the site
+# hero shows the current release name.
+#
+# Manual dispatch is also allowed — useful if you rename a release or
+# need to backfill the version badge.
+
+on:
+  repository_dispatch:
+    types: [release-published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v0.0.4). Leave blank to auto-detect."
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  update-version:
+    name: Update latest-version.json
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Determine release info
+        id: relinfo
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+          DISPATCH_TAG: ${{ github.event.client_payload.tag }}
+        run: |
+          set -euo pipefail
+
+          TAG="${DISPATCH_TAG:-${INPUT_TAG:-}}"
+          if [ -z "$TAG" ]; then
+            TAG=$(gh release view --repo liquid-releasing/forgeplayer-releases --json tagName --jq .tagName)
+          fi
+          echo "Using tag: $TAG"
+
+          INFO=$(gh release view "$TAG" --repo liquid-releasing/forgeplayer-releases --json tagName,name,publishedAt)
+          echo "info<<EOF"  >> "$GITHUB_OUTPUT"
+          echo "$INFO"      >> "$GITHUB_OUTPUT"
+          echo "EOF"        >> "$GITHUB_OUTPUT"
+
+      - name: Write latest-version.json
+        run: |
+          echo '${{ steps.relinfo.outputs.info }}' | jq '{
+            tag: .tagName,
+            name: .name,
+            published_at: .publishedAt
+          }' > latest-version.json
+          cat latest-version.json
+
+      - name: Commit and push if changed
+        run: |
+          if git diff --quiet latest-version.json; then
+            echo "No change to latest-version.json — nothing to commit."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add latest-version.json
+          git commit -m "chore(version): bump to $(jq -r .tag latest-version.json)"
+          git push

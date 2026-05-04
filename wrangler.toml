@@ -1,0 +1,17 @@
+# Cloudflare Workers config for forgeplayer.app
+#
+# This site is pure static HTML + assets — no Worker code, no build
+# step. Cloudflare serves the repo root directly, honouring
+# .assetsignore to skip repo-only files (README, .github, etc.).
+#
+# Deploy on every push to `main` via the Cloudflare Git integration
+# (Cloudflare dashboard → Workers & Pages → this project → Settings →
+# Build). The dashboard's default "npx wrangler deploy" command picks
+# up this file automatically.
+
+name = "forgeplayer-web"
+compatibility_date = "2025-05-04"
+
+[assets]
+directory = "./"
+not_found_handling = "404-page"

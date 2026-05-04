@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ForgePlayer — Synchronized multi-screen playback with device routing</title>
+  <meta name="description" content="ForgePlayer plays a scene pack across every screen and every device on one timeline. Video to your monitor, scene audio to your speakers, stim audio to your USB dongle, prostate channel to a second port — all synced. Local desktop app, no cloud." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0e1117;
+      --surface:  #1a1d27;
+      --border:   #2d3148;
+      --accent:   #ff6b30;
+      --accent2:  #ff8a5c;
+      --text:     #fafafa;
+      --muted:    #9ba3c4;
+      --code-bg:  #12151e;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(14,17,23,0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 88px;
+    }
+    nav .brand {
+      display: flex; align-items: center; gap: 0.6rem;
+      font-weight: 700; font-size: 1.05rem; color: var(--text);
+      text-decoration: none;
+    }
+    nav .brand img { height: 64px; width: auto; object-fit: contain; }
+    nav .links { display: flex; gap: 1.5rem; }
+    nav .links a {
+      color: var(--muted); text-decoration: none; font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+    nav .links a:hover { color: var(--text); }
+
+    /* ── Hero ── */
+    .hero {
+      text-align: center;
+      padding: 6rem 2rem 5rem;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .hero .banner-wrap {
+      margin-bottom: 2rem;
+    }
+    .hero .banner-wrap img {
+      width: 100%; max-width: 460px; height: auto;
+    }
+    .hero h1 {
+      font-size: clamp(2.2rem, 5vw, 3.4rem);
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 1.25rem;
+      letter-spacing: -0.02em;
+    }
+    .hero h1 span { color: var(--accent); }
+    .hero p.tagline {
+      font-size: clamp(1rem, 2.5vw, 1.2rem);
+      color: var(--muted);
+      max-width: 620px;
+      margin: 0 auto 2.5rem;
+    }
+
+    .dl-buttons {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.55rem;
+      padding: 0.75rem 1.6rem;
+      border-radius: 8px;
+      font-size: 1rem; font-weight: 600;
+      text-decoration: none; cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.4); }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn svg { flex-shrink: 0; }
+
+    .version-note { font-size: 0.8rem; color: var(--muted); margin-top: 0.25rem; }
+
+    /* ── Sections ── */
+    .section {
+      max-width: 1060px;
+      margin: 0 auto;
+      padding: 4rem 2rem;
+    }
+    .section-title {
+      font-size: 1.7rem; font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    .section-sub {
+      color: var(--muted); font-size: 1rem;
+      margin-bottom: 3rem;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.25rem;
+    }
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+    }
+    .feature-card .icon {
+      font-size: 6rem; margin-bottom: 0.75rem;
+    }
+    .feature-card .icon img {
+      width: 160px; height: 160px; object-fit: contain;
+    }
+    .feature-card h3 {
+      font-size: 1rem; font-weight: 600; margin-bottom: 0.4rem;
+    }
+    .feature-card p { font-size: 0.88rem; color: var(--muted); }
+
+    /* ── How it works ── */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1.25rem;
+    }
+    .step {
+      display: flex; flex-direction: column; gap: 0.5rem;
+    }
+    .step .num {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700; font-size: 0.95rem;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .step h3 { font-size: 0.95rem; font-weight: 600; }
+    .step p  { font-size: 0.85rem; color: var(--muted); }
+
+    /* ── System requirements ── */
+    .reqs-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    .reqs-table th, .reqs-table td {
+      text-align: left;
+      padding: 0.6rem 1rem;
+      border: 1px solid var(--border);
+    }
+    .reqs-table th {
+      background: var(--surface);
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .reqs-table td { color: var(--text); }
+
+    /* ── More tools grid ── */
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 1.5rem;
+    }
+    .tool-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .tool-card-header {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+    .tool-card-header img {
+      width: 96px; height: 96px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+    .tool-card-header h3 {
+      font-size: 1.15rem; font-weight: 700;
+      margin-bottom: 0.3rem;
+    }
+    .tool-card-header p {
+      font-size: 0.9rem; color: var(--muted);
+      line-height: 1.5;
+    }
+    .tool-card .tool-dl {
+      display: flex; flex-wrap: wrap; gap: 0.5rem;
+      margin-top: auto;
+    }
+    .tool-card .tool-dl a {
+      font-size: 0.8rem; padding: 0.4rem 0.8rem;
+      border-radius: 6px; text-decoration: none;
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .tool-card .tool-dl a:hover {
+      border-color: var(--accent);
+      background: rgba(255, 107, 48, 0.08);
+    }
+    .tool-card .tool-dl svg {
+      width: 14px; height: 14px;
+    }
+
+    /* ── Download CTA ── */
+    .cta-bar {
+      background: linear-gradient(135deg, #1a120e 0%, #1a1d27 60%, #0e1117 100%);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .cta-bar .section { text-align: center; }
+    .cta-bar p { color: var(--muted); margin-bottom: 2rem; }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem;
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    footer a { color: var(--muted); text-decoration: underline; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+    }
+
+    @media (max-width: 600px) {
+      .hero { padding: 4rem 1.25rem 3rem; }
+      .section { padding: 3rem 1.25rem; }
+      nav .links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Navigation ── -->
+<nav>
+  <a class="brand" href="#">
+    <img src="forgeplayer_horizontal.png" alt="ForgePlayer" />
+  </a>
+  <div class="links">
+    <a href="#features">Features</a>
+    <a href="#how-it-works">How it works</a>
+    <a href="#requirements">Requirements</a>
+    <a href="https://liquid-releasing.github.io/forgeplayer/" target="_blank" rel="noopener">Docs</a>
+    <a href="https://discord.gg/sZWCqgxY" target="_blank" rel="noopener">Discord</a>
+    <a href="https://github.com/liquid-releasing/forgeplayer" target="_blank" rel="noopener">GitHub</a>
+  </div>
+</nav>
+
+<!-- ── Hero ── -->
+<section class="hero">
+  <div class="banner-wrap">
+    <img src="forgeplayer_hero.png" alt="ForgePlayer" />
+  </div>
+  <h1>One seek bar.<br /><span>Every screen. Every device.</span></h1>
+  <p class="tagline">
+    Play a video on your 4K monitor. Scene audio to your speakers. Stim
+    audio to your USB dongle. A prostate channel to a second dongle.
+    Haptics to whatever you have plugged in. All driven by the same
+    pack, all synced to the same timestamp.
+  </p>
+
+  <div class="dl-buttons">
+    <a class="btn btn-primary"
+       href="https://github.com/liquid-releasing/forgeplayer-releases/releases/latest/download/ForgePlayer-windows.zip"
+       download>
+      <!-- Windows icon -->
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/>
+      </svg>
+      Download for Windows
+    </a>
+    <a class="btn btn-secondary"
+       href="https://github.com/liquid-releasing/forgeplayer-releases/releases/latest/download/ForgePlayer-macos.zip"
+       download>
+      <!-- Apple icon -->
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/>
+      </svg>
+      Download for macOS
+    </a>
+    <a class="btn btn-secondary"
+       href="https://github.com/liquid-releasing/forgeplayer-releases/releases/latest/download/ForgePlayer-linux.tar.gz"
+       download>
+      <!-- Terminal icon -->
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M20 3H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H4V7h16v12zm-9 2v-2h2v2h-2zM5.5 11.5l1.41-1.42L10 13.17l-3.09 3.09L5.5 14.84 7.67 12.5 5.5 11.5zm5.5 4h5v-2h-5v2z"/>
+      </svg>
+      Download for Linux
+    </a>
+  </div>
+  <p class="version-note" id="version-line">
+    <span id="version-label">Latest release</span>
+    &nbsp;·&nbsp; Free &nbsp;·&nbsp; No Python required &nbsp;·&nbsp;
+    <a href="https://github.com/liquid-releasing/forgeplayer" style="color:var(--muted);">Open source</a>
+  </p>
+  <p class="version-note" style="margin-top:0.5rem;">
+    Pre-release software. Provided as-is, without warranty of any kind. Use at your own risk.
+  </p>
+</section>
+
+<hr class="divider" />
+
+<!-- ── Features ── -->
+<section class="section" id="features">
+  <h2 class="section-title">What it does</h2>
+  <p class="section-sub">One pack drops in. Everything plays together.</p>
+
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="icon"><img src="spark.png" alt="" /></div>
+      <h3>Synchronized multi-screen video</h3>
+      <p>libmpv pipeline with shared decoder and one render context per screen — every monitor stays frame-locked through play, seek, chapter jumps, and loops.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon"><img src="tongs.png" alt="" /></div>
+      <h3>Per-port device routing</h3>
+      <p>Scene audio to your speakers, stim audio to a USB dongle, a prostate channel to a second dongle, haptics to whatever you have. Separate volume per port.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon"><img src="anvil.png" alt="" /></div>
+      <h3>Dual-port stim with prostate channel</h3>
+      <p>Haptic 1 carries the main stim. Haptic 2 plays a prostate-specific track when the pack provides one — frame-perfect mirror of Haptic 1 otherwise.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon"><img src="oven.png" alt="" /></div>
+      <h3>Sound or live funscript synth</h3>
+      <p>Pick whether ForgePlayer prefers pre-rendered stim audio (mp3) or synthesizes a funscript live via the embedded restim engine. Falls back gracefully when only one is available.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon"><img src="anvil-no-sparks.png" alt="" /></div>
+      <h3>Clean stim audio</h3>
+      <p>Multi-block envelope ramping, post-seek settle hold, and WASAPI exclusive mode on Windows keep the stim stream pop-free across play, pause, seek, and stop.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon"><img src="forgeplayer_icon.png" alt="" /></div>
+      <h3>Drop a folder. Hit play.</h3>
+      <p>Scene packs from FunscriptForge or ForgeAssembler load directly. Library auto-discovers MP4 + funscript + prostate-audio variants. Local-only — no cloud, no account, no telemetry.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── How it works ── -->
+<section class="section" id="how-it-works">
+  <h2 class="section-title">How it works</h2>
+  <p class="section-sub">Four steps from cold start to synced playback.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="num">1</div>
+      <h3>Pick devices in Setup</h3>
+      <p>Wire your scene audio output, Haptic 1, and (optionally) Haptic 2 dongle. Calibrate each port with a built-in test tone.</p>
+    </div>
+    <div class="step">
+      <div class="num">2</div>
+      <h3>Scan a library folder</h3>
+      <p>Point Library at any folder of scene packs. ForgePlayer discovers video, funscripts, stim audio, and prostate variants automatically.</p>
+    </div>
+    <div class="step">
+      <div class="num">3</div>
+      <h3>Click a scene</h3>
+      <p>Single-click activates a scene; the Live tab fills with the timeline, per-port routing, and the source labels for each haptic channel.</p>
+    </div>
+    <div class="step">
+      <div class="num">4</div>
+      <h3>Play</h3>
+      <p>One seek bar drives every screen and every device. Scrub freely — synth, audio file, and video all stay in sync.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── System requirements ── -->
+<section class="section" id="requirements">
+  <h2 class="section-title">System requirements</h2>
+  <p class="section-sub">Standalone app — no Python, no mpv install, no dependencies.</p>
+
+  <table class="reqs-table">
+    <thead>
+      <tr><th></th><th>Minimum</th><th>Recommended</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>OS</strong></td><td>Windows 10 (64-bit) · macOS 10.15 Catalina · Linux x86-64</td><td>Windows 10/11 · macOS 12+ · Ubuntu 24.04 LTS</td></tr>
+      <tr><td><strong>Display</strong></td><td>1920 × 1080</td><td>4K + a second monitor (the multi-screen story shines)</td></tr>
+      <tr><td><strong>Audio</strong></td><td>Built-in output for scene audio</td><td>One USB audio dongle for stim — two if you want a prostate channel</td></tr>
+      <tr><td><strong>RAM</strong></td><td>8 GB</td><td>16 GB or more</td></tr>
+      <tr><td><strong>GPU</strong></td><td>Any GPU with OpenGL 3.3</td><td>Discrete GPU for HDR pass-through and high-bitrate scaling</td></tr>
+      <tr><td><strong>libmpv</strong></td><td colspan="2">Bundled — no install required</td></tr>
+      <tr><td><strong>Python</strong></td><td colspan="2">Not required — standalone installer</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ── More tools ── -->
+<section class="section" id="tools">
+  <h2 class="section-title">More from Liquid Releasing</h2>
+  <p class="section-sub">The rest of the family — what feeds ForgePlayer, and what it pairs with.</p>
+
+  <div class="tools-grid">
+    <div class="tool-card">
+      <div class="tool-card-header">
+        <img src="https://funscriptforge.com/funscriptforge-logo-wide.png" alt="FunscriptForge" />
+        <div>
+          <h3>FunscriptForge</h3>
+          <p>Structure-aware funscript post-processor. Builds the multi-channel scene packs ForgePlayer plays — main funscript, alpha-prostate, pre-rendered stim audio, and the rest.</p>
+        </div>
+      </div>
+      <div class="tool-dl">
+        <a href="https://funscriptforge.com" target="_blank" rel="noopener">
+          Visit FunscriptForge.com →
+        </a>
+      </div>
+    </div>
+
+    <div class="tool-card">
+      <div class="tool-card-header">
+        <img src="https://forgeassembler.app/forgeassembler_icon.png" alt="ForgeAssembler" />
+        <div>
+          <h3>ForgeAssembler</h3>
+          <p>Concatenate many FunscriptForge clips into one long combined output — MP4 with chapter markers, every funscript channel in lockstep, fade-to-black joiners. Build longer ForgePlayer-ready packs from short clips.</p>
+        </div>
+      </div>
+      <div class="tool-dl">
+        <a href="https://forgeassembler.app" target="_blank" rel="noopener">
+          Visit forgeassembler.app →
+        </a>
+      </div>
+    </div>
+
+    <div class="tool-card">
+      <div class="tool-card-header">
+        <img src="https://funscriptforge.com/forgeyt-logo.png" alt="ForgeYT" />
+        <div>
+          <h3>ForgeYT</h3>
+          <p>Paste a YouTube URL, get the audio file on your disk. MP3, M4A, Opus, or WAV with embedded title and cover art. Useful for grabbing music beds for ForgeAssembler or reference audio for FunscriptForge.</p>
+        </div>
+      </div>
+      <div class="tool-dl">
+        <a href="https://github.com/liquid-releasing/forgeyt-releases/releases/latest/download/ForgeYT-windows.zip" download>
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>
+          Windows
+        </a>
+        <a href="https://github.com/liquid-releasing/forgeyt-releases/releases/latest/download/ForgeYT-macos.zip" download>
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>
+          macOS
+        </a>
+        <a href="https://github.com/liquid-releasing/forgeyt-releases/releases/latest/download/ForgeYT-linux.tar.gz" download>
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 3H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H4V7h16v12zm-9 2v-2h2v2h-2z"/></svg>
+          Linux
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Download CTA ── -->
+<div class="cta-bar">
+  <section class="section">
+    <h2 class="section-title">Ready to play?</h2>
+    <p>Download the latest release, extract, and run. No install wizard, no registry entries.</p>
+    <div class="dl-buttons">
+      <a class="btn btn-primary"
+         href="https://github.com/liquid-releasing/forgeplayer-releases/releases/latest/download/ForgePlayer-windows.zip"
+         download>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/>
+        </svg>
+        Download for Windows
+      </a>
+      <a class="btn btn-secondary"
+         href="https://github.com/liquid-releasing/forgeplayer-releases/releases/latest/download/ForgePlayer-macos.zip"
+         download>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/>
+        </svg>
+        Download for macOS
+      </a>
+      <a class="btn btn-secondary"
+         href="https://github.com/liquid-releasing/forgeplayer-releases/releases/latest/download/ForgePlayer-linux.tar.gz"
+         download>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M20 3H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H4V7h16v12zm-9 2v-2h2v2h-2zM5.5 11.5l1.41-1.42L10 13.17l-3.09 3.09L5.5 14.84 7.67 12.5 5.5 11.5zm5.5 4h5v-2h-5v2z"/>
+        </svg>
+        Download for Linux
+      </a>
+    </div>
+    <p class="version-note" style="margin-top:1rem;">
+      Pre-release software. Provided as-is, without warranty of any kind. Use at your own risk.
+    </p>
+    <p style="margin-top:0.75rem;">
+      <a href="https://github.com/liquid-releasing/forgeplayer-releases/releases" style="color:var(--muted); font-size:0.85rem;">
+        All releases on GitHub →
+      </a>
+    </p>
+  </section>
+</div>
+
+<!-- ── Footer ── -->
+<footer>
+  <div style="margin-bottom: 1rem;">
+    <img src="Icon-Only-White.svg" alt="Liquid Releasing" style="height: 96px; width: auto;" />
+  </div>
+  <p>
+    &copy; 2026 Liquid Releasing
+    &nbsp;·&nbsp;
+    <a href="https://github.com/liquid-releasing/forgeplayer/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>
+    &nbsp;·&nbsp;
+    <a href="https://discord.gg/sZWCqgxY" target="_blank" rel="noopener">Discord</a>
+    &nbsp;·&nbsp;
+    ForgePlayer is part of the <a href="https://funscriptforge.com">Liquid Releasing family</a>
+  </p>
+</footer>
+
+<!-- ── Latest-release version badge (auto-updated by CI) ── -->
+<script>
+  (async function () {
+    try {
+      const res = await fetch("latest-version.json", { cache: "no-store" });
+      if (!res.ok) return;
+      const { tag } = await res.json();
+      if (tag) {
+        document.getElementById("version-label").textContent = tag;
+      }
+    } catch (_) { /* no-op — falls back to static label */ }
+  })();
+</script>
+
+</body>
+</html>
