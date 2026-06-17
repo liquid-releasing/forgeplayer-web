@@ -7,3 +7,4 @@
 .assetsignore
 wrangler.toml
 README.md
+RELEASING.md
