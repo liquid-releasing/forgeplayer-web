@@ -292,7 +292,7 @@
   <p class="tagline">
     Play a video on your 4K monitor. Scene audio to your speakers. Stim
     audio to your USB dongle. A prostate channel to a second dongle.
-    Haptics to whatever you have plugged in. All driven by the same
+    Every e-stim box on its own port. All driven by the same
     pack, all synced to the same timestamp.
   </p>
 
@@ -369,17 +369,17 @@
     <div class="feature-card">
       <div class="icon"><img src="forgeplayer_multiscreen.png" alt="" /></div>
       <h3>Synchronized multi-screen video</h3>
-      <p>libmpv pipeline with shared decoder and one render context per screen — every monitor stays frame-locked through play, seek, chapter jumps, and loops.</p>
+      <p>A libmpv render context per screen, all driven from one seek bar — every monitor follows the same timeline through play, pause, seek, and chapter jumps.</p>
     </div>
     <div class="feature-card">
       <div class="icon"><img src="forgeplayer_inputs.png" alt="" /></div>
       <h3>Per-port device routing</h3>
-      <p>Scene audio to your speakers, stim audio to a USB dongle, a prostate channel to a second dongle, haptics to whatever you have. Separate volume per port.</p>
+      <p>Scene audio to your speakers, stim audio to a USB dongle, a prostate channel to a second dongle — each on its own output. Scene volume adjusts without touching your stim levels.</p>
     </div>
     <div class="feature-card">
       <div class="icon"><img src="anvil.png" alt="" /></div>
       <h3>Dual-port stim with multi-channel</h3>
-      <p>Haptic 1 carries the main stim. Haptic 2 plays a prostate-specific track when the pack provides one — frame-perfect mirror of Haptic 1 otherwise.</p>
+      <p>Haptic 1 carries the main stim. Haptic 2 plays a prostate-specific track when the pack provides one, and mirrors Haptic 1 otherwise.</p>
     </div>
     <div class="feature-card">
       <div class="icon"><img src="forgeplayer_playback_2.png" alt="" /></div>
@@ -389,7 +389,7 @@
     <div class="feature-card">
       <div class="icon"><img src="forgeplayer_feature_sound.png" alt="" /></div>
       <h3>Clean stim audio</h3>
-      <p>Multi-block envelope ramping, post-seek settle hold, and WASAPI exclusive mode on Windows keep the stim stream pop-free across play, pause, seek, and stop.</p>
+      <p>Multi-block envelope ramping and a post-seek settle hold keep the stim stream pop-free across play, pause, seek, and stop — pre-rendered stim audio and live synth both ride the same fade.</p>
     </div>
     <div class="feature-card">
       <div class="icon"><img src="forgeplayer_icon.png" alt="" /></div>
@@ -446,7 +446,7 @@
       <tr><td><strong>Display</strong></td><td>1920 × 1080</td><td>4K + a second monitor (the multi-screen story shines)</td></tr>
       <tr><td><strong>Audio</strong></td><td>Built-in output for scene audio</td><td>One USB audio dongle for stim — two if you want a prostate channel</td></tr>
       <tr><td><strong>RAM</strong></td><td>8 GB</td><td>16 GB or more</td></tr>
-      <tr><td><strong>GPU</strong></td><td>Not required — integrated graphics handle 1080p and typical 4K</td><td>Any GPU with hardware video decoding (NVIDIA · AMD · Intel) — plays large / high-bitrate 4K far more smoothly and enables HDR pass-through</td></tr>
+      <tr><td><strong>GPU</strong></td><td>Not required — integrated graphics handle 1080p and typical 4K</td><td>Any GPU with hardware video decoding (NVIDIA · AMD · Intel) — plays large / high-bitrate 4K far more smoothly</td></tr>
       <tr><td><strong>libmpv</strong></td><td colspan="2">Bundled — no install required</td></tr>
       <tr><td><strong>Python</strong></td><td colspan="2">Not required — standalone installer</td></tr>
     </tbody>
