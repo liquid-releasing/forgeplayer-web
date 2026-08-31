@@ -116,14 +116,44 @@ the safe behavior, but means the installer step must be green.
 
 1. Land all changes on `forgeplayer` `main`; tests green.
 2. Refresh the "What's new" bullets in `release.yml` (release body).
-3. Tag and push: `git tag -a vX.Y.Z -m "ForgePlayer X.Y.Z (beta)" && git push origin vX.Y.Z`.
-4. Watch the run; the Windows **NSIS** step is the fragile one.
-5. Confirm the release is **Latest, not pre-release**:
+3. **Check the Discord invite hasn't lapsed** — see below. `release.yml`
+   writes it into the release body, so a dead invite ships permanently.
+4. Tag and push: `git tag -a vX.Y.Z -m "ForgePlayer X.Y.Z (beta)" && git push origin vX.Y.Z`.
+5. Watch the run; the Windows **NSIS** step is the fragile one.
+6. Confirm the release is **Latest, not pre-release**:
    `gh api repos/liquid-releasing/forgeplayer-releases/releases/latest --jq .tag_name`
-6. Confirm the badge: `latest-version.json` in this repo shows the new tag
+7. Confirm the badge: `latest-version.json` in this repo shows the new tag
    (sync-version commits it automatically).
-7. Verify on the live site: badge = new version, Download buttons fetch the new
-   binaries.
+8. Verify on the live site: badge = new version, Download buttons fetch the new
+   binaries, and the Discord link in the nav still resolves.
+
+---
+
+## The Discord invite (checklist step 3)
+
+One Discord server backs every Forge app, and the invite currently in use is
+a **timed** one: `UHdJFhEZF`, expiring **2026-09-30**. That matters at release
+time because the invite is not only on this site — it is written into the
+GitHub Release body by `release.yml` and compiled into shipped builds
+elsewhere in the family. Neither can be corrected after the fact.
+
+Check it before tagging:
+
+```bash
+code=$(git grep -hoE 'discord\.gg/[A-Za-z0-9]+' | head -1 | cut -d/ -f2)
+curl -sS "https://discord.com/api/v10/invites/$code?with_expiration=true"
+```
+
+- `"expires_at": null` — permanent invite, proceed.
+- A date after the next expected cut — proceed.
+- A date before it, or `"Invite is expired."` — **stop.** Get a fresh invite
+  (a never-expiring one ends this whole class of problem) and roll it across
+  every forge repo before tagging. It lives in `README.md`, `index.html`,
+  `mkdocs.yml`, `docs/**`, `about.py`, `ui.py`, and the release-notes body in
+  `.github/workflows/release.yml`.
+
+This site deploys on push to `main`, so a link fix here is live within a
+minute; verify with `curl -sL https://forgeplayer.app | grep discord.gg`.
 
 To **re-run** after a CI fix, move the tag:
 `git push origin :refs/tags/vX.Y.Z && git tag -d vX.Y.Z && git tag -a vX.Y.Z -m ... && git push origin vX.Y.Z`
